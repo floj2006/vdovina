@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { IArrow, IBack, ICheck, IPhone, IVk, IWa } from '../components/Icons';
 import { Page } from '../components/Layout';
@@ -7,51 +7,86 @@ import { Platter } from '../components/Platter';
 import { Counter, Img, Stepper } from '../components/ui';
 import { shortName } from '../data/menu';
 import { SITE } from '../data/site';
-import { orderText, rub } from '../lib/format';
+import { goal } from '../lib/analytics';
+import { dateStatus, maskPhone, orderText, phoneOk, rub, toLocalInput } from '../lib/format';
 import { useSeo } from '../lib/useSeo';
 import { useCart } from '../store/cart';
 
 const STEPS = ['Состав', 'Детали', 'Отправка'];
 
-const phoneOk = (v: string) => v.replace(/\D/g, '').length >= 10;
+const ERR = {
+  name: 'Как к вам обращаться?',
+  phone: 'Нужен номер из 11 цифр: +7 (___) ___-__-__',
+  address: 'Укажите адрес доставки',
+};
 
 export default function Cart() {
   useSeo('Оформление заказа');
-  const { items, lines, total, hasFrom, set, count, form, setForm, toast, clear } = useCart();
+  const { items, lines, total, hasFrom, set, count, form, setForm, resetForm, toast, clear } = useCart();
   const nav = useNavigate();
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState(1);
   const [tried, setTried] = useState(false);
-
-  const go = (n: number) => { setDir(n > step ? 1 : -1); setStep(n); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-  const errs = { name: !form.name.trim(), phone: !phoneOk(form.phone), address: form.method === 'delivery' && !form.address.trim() };
-  const valid = !errs.name && !errs.phone && !errs.address;
-  const text = orderText(items, form);
-
+  const [agree, setAgree] = useState(false);
   const [sending, setSending] = useState(false);
   const [hp, setHp] = useState('');
+
+  const reached = useRef(new Set<number>());
+  const go = (n: number) => {
+    // Каждый шаг воронки — одна цель за визит на страницу, даже если вернуться и пройти снова
+    if (n > step && !reached.current.has(n)) {
+      reached.current.add(n);
+      goal(n === 1 ? 'checkout_details' : 'checkout_review');
+    }
+    setDir(n > step ? 1 : -1); setStep(n); window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  const when = dateStatus(form.date);
+  const errs = {
+    name: !form.name.trim(),
+    phone: !phoneOk(form.phone),
+    address: form.method === 'delivery' && !form.address.trim(),
+    date: when === 'past',
+    agree: !agree,
+  };
+  const valid = !Object.values(errs).some(Boolean);
+  const text = orderText(items, form);
+
+  const done = (state?: { sent: boolean; id?: string }) => {
+    nav('/thanks', { state });
+  };
   const sendSite = async () => {
     setSending(true);
     try {
       const r = await fetch('/api/order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, phone: form.phone, website: hp }),
+        body: JSON.stringify({ text, phone: form.phone, hp }),
       });
       if (!r.ok) throw new Error(String(r.status));
+      const { id } = (await r.json().catch(() => ({}))) as { id?: string };
+      goal('order_sent', { total, items: count });
       clear();
-      nav('/thanks', { state: { sent: true } });
+      resetForm();
+      done({ sent: true, id });
     } catch {
+      goal('order_failed');
       toast('Не удалось отправить с сайта — отправьте через WhatsApp или ВК');
     } finally {
       setSending(false);
     }
   };
-  const sendWa = () => { window.open(`${SITE.wa}?text=${encodeURIComponent(text)}`, '_blank', 'noopener'); nav('/thanks'); };
-  const sendVk = async () => {
-    try { await navigator.clipboard.writeText(text); toast('Текст заказа скопирован — вставьте его в сообщение'); } catch { toast('Скопируйте текст заказа вручную'); }
+  const sendWa = () => {
+    goal('order_wa', { total, items: count });
+    window.open(`${SITE.wa}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+    done();
+  };
+  const sendVk = () => {
+    goal('order_vk', { total, items: count });
+    // Окно открываем синхронно в обработчике клика — иначе Safari его заблокирует
+    const copy = navigator.clipboard?.writeText(text) ?? Promise.reject(new Error('no clipboard'));
     window.open(SITE.vkWrite, '_blank', 'noopener');
-    nav('/thanks');
+    copy.then(() => toast('Текст заказа скопирован — вставьте его в сообщение'), () => toast('Скопируйте текст заказа вручную'));
+    done();
   };
 
   if (!lines.length) {
@@ -73,8 +108,9 @@ export default function Cart() {
   const field = (k: 'name' | 'phone' | 'address', label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
     <label className={`fld ${tried && errs[k] ? 'err' : ''}`}>
       <span>{label}</span>
-      <input value={form[k]} onChange={(e) => setForm({ [k]: e.target.value })} {...props} />
-      <AnimatePresence>{tried && errs[k] && <motion.em initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>Заполните это поле</motion.em>}</AnimatePresence>
+      <input value={form[k]} onChange={(e) => setForm({ [k]: k === 'phone' ? maskPhone(e.target.value) : e.target.value })}
+        aria-invalid={tried && errs[k]} {...props} />
+      <AnimatePresence>{tried && errs[k] && <motion.em initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>{ERR[k]}</motion.em>}</AnimatePresence>
     </label>
   );
 
@@ -136,13 +172,17 @@ export default function Cart() {
                   <div className="fgrid">
                     {field('name', 'Ваше имя *', { autoComplete: 'name', placeholder: 'Как к вам обращаться' })}
                     {field('phone', 'Телефон *', { type: 'tel', autoComplete: 'tel', placeholder: '+7 (___) ___-__-__', inputMode: 'tel' })}
-                    <label className="fld">
+                    <label className={`fld ${tried && errs.date ? 'err' : ''}`}>
                       <span>Дата и время</span>
-                      <input type="datetime-local" value={form.date} onChange={(e) => setForm({ date: e.target.value })} />
+                      <input type="datetime-local" value={form.date} min={toLocalInput(new Date())} aria-invalid={tried && errs.date}
+                        onChange={(e) => setForm({ date: e.target.value })} />
+                      {tried && errs.date && <em>Эта дата уже прошла</em>}
+                      {when === 'soon' && <small className="fld-hint">Меньше суток до получения — заказ подтвердится, если успею приготовить</small>}
                     </label>
                     <label className="fld">
                       <span>Гостей</span>
-                      <input type="number" min={1} value={form.guests} onChange={(e) => setForm({ guests: e.target.value })} placeholder="например, 12" />
+                      <input type="number" min={1} max={500} inputMode="numeric" value={form.guests}
+                        onChange={(e) => setForm({ guests: e.target.value.replace(/\D/g, '').slice(0, 3) })} placeholder="например, 12" />
                     </label>
                   </div>
                   <div className="seg" role="radiogroup" aria-label="Способ получения">
@@ -162,7 +202,14 @@ export default function Cart() {
                   </AnimatePresence>
                   <label className="fld">
                     <span>Комментарий</span>
-                    <textarea rows={3} value={form.note} onChange={(e) => setForm({ note: e.target.value })} placeholder="Пожелания, аллергии, повод праздника" />
+                    <textarea rows={3} maxLength={1000} value={form.note} onChange={(e) => setForm({ note: e.target.value })} placeholder="Пожелания, аллергии, повод праздника" />
+                  </label>
+                  <label className={`agree ${tried && errs.agree ? 'err' : ''}`}>
+                    <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} aria-invalid={tried && errs.agree} />
+                    <span>
+                      Согласен(на) на <Link to="/privacy" target="_blank">обработку персональных данных</Link> и
+                      с <Link to="/terms" target="_blank">условиями заказа</Link> *
+                    </span>
                   </label>
                   <div className="co-nav">
                     <button type="button" className="btn btn-ghost" onClick={() => go(0)}><IBack /> Назад</button>
@@ -177,7 +224,7 @@ export default function Cart() {
                   <p className="muted">Сообщение уже готово — выберите, куда отправить. Оксана ответит и подтвердит время и сумму.</p>
                   <motion.pre className="msg" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.15 } }}>{text}</motion.pre>
                   <div className="send">
-                    <input type="text" name="website" value={hp} onChange={(e) => setHp(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden style={{ position: 'absolute', left: '-9999px', opacity: 0 }} />
+                    <input type="text" name="ov_hp_check" value={hp} onChange={(e) => setHp(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden style={{ position: 'absolute', left: '-9999px', opacity: 0 }} />
                     <button className="btn btn-primary" onClick={sendSite} disabled={sending}>{sending ? 'Отправляю…' : 'Отправить заказ'}</button>
                     <button className="btn send-wa" onClick={sendWa}><IWa /> Отправить в WhatsApp</button>
                     <button className="btn send-vk" onClick={sendVk}><IVk /> Написать ВКонтакте</button>

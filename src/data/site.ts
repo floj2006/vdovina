@@ -11,7 +11,31 @@ export const SITE = {
   address: 'ул. Ленина, 17а',
   hours: 'Ежедневно 08:00 — 21:00',
   hoursShort: '08:00–21:00',
+  /** Домен сайта без слэша в конце — для canonical, og:url и sitemap (задаётся VITE_SITE_URL) */
+  url: (import.meta.env.VITE_SITE_URL || '').replace(/\/+$/, ''),
 };
+
+/**
+ * Данные продавца для футера, политики и условий заказа.
+ * ЗАПОЛНИТЬ перед запуском: пустые поля на сайте не выводятся.
+ */
+export const LEGAL = {
+  /** ФИО полностью, как в документах */
+  owner: 'Вдовина Оксана',
+  /** «Самозанятая» или «ИП» */
+  status: '',
+  inn: '',
+  /** ОГРНИП — только для ИП */
+  ogrnip: '',
+  city: '',
+  email: '',
+  /** Дата публикации политики и условий */
+  updated: '23.10.2026',
+};
+
+export const legalLine = () =>
+  [LEGAL.status && `${LEGAL.status} ${LEGAL.owner}`, LEGAL.inn && `ИНН ${LEGAL.inn}`, LEGAL.ogrnip && `ОГРНИП ${LEGAL.ogrnip}`]
+    .filter(Boolean).join(' · ');
 
 export type PlanKey = 'light' | 'buffet' | 'rich';
 

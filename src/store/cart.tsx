@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
 import { BY_ID, shortName } from '../data/menu';
+import { goal } from '../lib/analytics';
 import { cartLines, cartTotal, emptyForm, type OrderForm } from '../lib/format';
 
 type Items = Record<string, number>;
@@ -43,6 +44,8 @@ interface Ctx {
   clear: () => void;
   form: OrderForm;
   setForm: (patch: Partial<OrderForm>) => void;
+  /** Стереть данные формы (имя, телефон, адрес) после отправки заказа */
+  resetForm: () => void;
   drawer: boolean;
   setDrawer: (v: boolean) => void;
   toast: (msg: string) => void;
@@ -75,6 +78,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const add = useCallback((id: string, n = 1, from?: HTMLElement | null) => {
     dispatch({ type: 'add', id, n });
     if (n > 0) {
+      goal('add_to_cart', { id, qty: n });
       flyToCart(from, BY_ID[id]?.img).then(() => setBump((b) => b + 1));
       toast(`«${shortName(BY_ID[id].name)}» в заказе`);
     }
@@ -82,6 +86,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const merge = useCallback((m: Items, from?: HTMLElement | null) => {
     dispatch({ type: 'merge', items: m });
+    goal('add_to_cart', { source: 'constructor', items: Object.keys(m).length });
     const first = Object.keys(m)[0];
     flyToCart(from, first ? BY_ID[first]?.img : null).then(() => setBump((b) => b + 1));
   }, []);
@@ -97,6 +102,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       set: (id, q) => dispatch({ type: 'set', id, q }),
       clear: () => dispatch({ type: 'clear' }),
       form, setForm: (patch) => setFormState((f) => ({ ...f, ...patch })),
+      resetForm: () => setFormState(emptyForm),
       drawer, setDrawer, toast, toastMsg, bump,
     };
   }, [items, form, drawer, toastMsg, bump, add, merge, toast]);

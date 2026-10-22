@@ -24,6 +24,40 @@ export interface OrderForm {
   note: string;
 }
 
+/** Маска российского номера: +7 (908) 049-56-39. 8 в начале заменяется на 7 */
+export function maskPhone(v: string) {
+  let d = v.replace(/\D/g, '');
+  if (!d) return '';
+  if (d[0] === '8') d = '7' + d.slice(1);
+  if (d[0] !== '7') d = '7' + d;
+  d = d.slice(0, 11);
+  const p = [d.slice(1, 4), d.slice(4, 7), d.slice(7, 9), d.slice(9, 11)];
+  let out = '+7';
+  if (p[0]) out += ` (${p[0]}`;
+  if (p[0].length === 3 && p[1]) out += `) ${p[1]}`;
+  if (p[2]) out += `-${p[2]}`;
+  if (p[3]) out += `-${p[3]}`;
+  return out;
+}
+
+export const phoneOk = (v: string) => /^7\d{10}$/.test(v.replace(/\D/g, ''));
+
+/** Значение для input[type=datetime-local] в локальном времени */
+export const toLocalInput = (d: Date) => {
+  const z = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}`;
+};
+
+/** Срок до получения: past — дата прошла, soon — меньше суток (стоит предупредить) */
+export function dateStatus(v: string): 'empty' | 'past' | 'soon' | 'ok' {
+  if (!v) return 'empty';
+  const t = new Date(v).getTime();
+  if (isNaN(t)) return 'empty';
+  const left = t - Date.now();
+  if (left < 0) return 'past';
+  return left < 24 * 3600_000 ? 'soon' : 'ok';
+}
+
 export const emptyForm: OrderForm = { name: '', phone: '', date: '', guests: '', method: 'pickup', address: '', note: '' };
 
 export const cartLines = (items: Record<string, number>) =>

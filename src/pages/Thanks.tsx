@@ -12,7 +12,8 @@ export default function Thanks() {
   useSeo('Спасибо за заказ');
   const { count, clear } = useCart();
   const [cleared, setCleared] = useState(false);
-  const sent = Boolean((useLocation().state as { sent?: boolean } | null)?.sent);
+  const st = useLocation().state as { sent?: boolean; id?: string } | null;
+  const sent = Boolean(st?.sent);
   const bits = [...Array(36)].map((_, i) => ({
     x: (Math.cos(i * 2.4) * (140 + (i % 5) * 40)),
     y: (Math.sin(i * 2.4) * (110 + (i % 4) * 36)) - 40,
@@ -40,7 +41,7 @@ export default function Thanks() {
         <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>Спасибо! <em>{sent ? 'Заказ принят' : 'Заказ почти у Оксаны'}</em></motion.h1>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}>
           {sent
-            ? <>Заказ отправлен — Оксана свяжется с вами, подтвердит состав, время и сумму. Если срочно, позвоните: <a href={SITE.phoneHref}>{SITE.phone}</a>.</>
+            ? <>{st?.id && <>Номер заказа: <b>{st.id}</b>. </>}Заказ отправлен — Оксана свяжется с вами, подтвердит состав, время и сумму. Если срочно, позвоните: <a href={SITE.phoneHref}>{SITE.phone}</a>.</>
             : <>Отправьте сообщение в открывшемся окне — Оксана ответит, подтвердит состав, время и сумму. Если окно не открылось, позвоните: <a href={SITE.phoneHref}>{SITE.phone}</a>.</>}
         </motion.p>
         <motion.div className="row center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.15 }}>

@@ -95,6 +95,7 @@ export function Lightbox({ src, alt, open, onClose, layoutId }: { src: string; a
 
   useEffect(() => { if (scale === 1) { x.set(0); y.set(0); } }, [scale, x, y]);
 
+  if (import.meta.env.SSR) return null;
   return createPortal(
     <AnimatePresence>
       {open && (

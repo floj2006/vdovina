@@ -5,3 +5,7 @@ dist
 !.env.example
 .vercel
 *.log
+dist-ssr
+test-results
+playwright-report
+.claude/

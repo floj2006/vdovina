@@ -17,6 +17,45 @@ import NotFound from './NotFound';
 
 type View = 'photo' | 'close' | 'unbox' | 'table';
 
+/** Микроразметка schema.org: блюдо с ценой и хлебные крошки */
+const productLd = (p: Product) => {
+  const cat = CAT[p.cat];
+  const abs = (path: string) => (SITE.url ? SITE.url + path : path);
+  return [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: p.name,
+      description: cat.about,
+      category: cat.title,
+      ...(p.img && { image: p.img }),
+      offers: {
+        '@type': 'Offer',
+        price: p.price,
+        priceCurrency: 'RUB',
+        availability: 'https://schema.org/PreOrder',
+        url: abs(`/product/${p.slug}`),
+      },
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { name: 'Главная', path: '/' },
+        { name: 'Меню', path: '/menu' },
+        { name: cat.title, path: `/menu/${cat.slug}` },
+        { name: shortName(p.name), path: `/product/${p.slug}` },
+      ].map((x, i) => ({ '@type': 'ListItem', position: i + 1, name: x.name, item: abs(x.path) })),
+    },
+  ];
+};
+
+function JsonLd({ data }: { data: unknown }) {
+  // «<» экранируется, чтобы название блюда не могло закрыть тег script
+  const json = JSON.stringify(data).replace(/</g, '\\u003c');
+  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: json }} />;
+}
+
 /** Ракурсы одного фото: целиком, крупный план, детали — плавный «наезд камеры» */
 const SHOTS = [
   { k: 'full', l: 'Целиком', scale: 1, ox: 50, oy: 50 },
@@ -123,6 +162,7 @@ export default function ProductPage() {
 
   return (
     <Page className="product-page">
+      <JsonLd data={productLd(p)} />
       <div className="wrap">
         <nav className="crumbs">
           <Link to="/">Главная</Link><span>/</span><Link to="/menu">Меню</Link><span>/</span>

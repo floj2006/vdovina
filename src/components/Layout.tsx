@@ -2,7 +2,9 @@ import { AnimatePresence, motion, useMotionValueEvent, useScroll } from 'framer-
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { CATEGORIES, shortName } from '../data/menu';
-import { SITE } from '../data/site';
+import { SITE, legalLine } from '../data/site';
+import { openConsent } from '../lib/analytics';
+import { CookieBanner } from './CookieBanner';
 import { rub } from '../lib/format';
 import { useCart } from '../store/cart';
 import { IArrow, IBag, IClose, IMenu, IPhone, IVk, IWa } from './Icons';
@@ -199,7 +201,12 @@ function Footer() {
         </div>
       </div>
       <div className="wrap f-bot">
-        <span>© {new Date().getFullYear()} {SITE.name}. Все цены в рублях.</span>
+        <span>© {new Date().getFullYear()} {SITE.name}. Все цены в рублях.{legalLine() && <> {legalLine()}.</>}</span>
+        <nav className="f-legal" aria-label="Документы">
+          <Link to="/terms">Условия заказа</Link>
+          <Link to="/privacy">Политика конфиденциальности</Link>
+          <button onClick={openConsent}>Настройки cookie</button>
+        </nav>
         <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Наверх ↑</button>
       </div>
     </footer>
@@ -258,6 +265,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <MobileBar />
       <CartDrawer />
       <Toast />
+      <CookieBanner />
     </>
   );
 }

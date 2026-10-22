@@ -60,6 +60,7 @@ export function QuickView({ p, onClose }: { p: Product | null; onClose: () => vo
     return () => { document.removeEventListener('keydown', k); unlock(); };
   }, [p, onClose]);
 
+  if (import.meta.env.SSR) return null;
   return createPortal(
     <AnimatePresence>
       {p && (
