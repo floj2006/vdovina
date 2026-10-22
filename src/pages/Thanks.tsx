@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Page } from '../components/Layout';
 import { SITE } from '../data/site';
 import { useSeo } from '../lib/useSeo';
@@ -12,6 +12,7 @@ export default function Thanks() {
   useSeo('Спасибо за заказ');
   const { count, clear } = useCart();
   const [cleared, setCleared] = useState(false);
+  const sent = Boolean((useLocation().state as { sent?: boolean } | null)?.sent);
   const bits = [...Array(36)].map((_, i) => ({
     x: (Math.cos(i * 2.4) * (140 + (i % 5) * 40)),
     y: (Math.sin(i * 2.4) * (110 + (i % 4) * 36)) - 40,
@@ -36,9 +37,11 @@ export default function Thanks() {
           <motion.path d="M38 62 L54 77 L84 45" fill="none" stroke="currentColor" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round"
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.45, delay: 0.6 }} />
         </svg>
-        <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>Спасибо! <em>Заказ почти у Оксаны</em></motion.h1>
+        <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>Спасибо! <em>{sent ? 'Заказ принят' : 'Заказ почти у Оксаны'}</em></motion.h1>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}>
-          Отправьте сообщение в открывшемся окне — Оксана ответит, подтвердит состав, время и сумму. Если окно не открылось, позвоните: <a href={SITE.phoneHref}>{SITE.phone}</a>.
+          {sent
+            ? <>Заказ отправлен — Оксана свяжется с вами, подтвердит состав, время и сумму. Если срочно, позвоните: <a href={SITE.phoneHref}>{SITE.phone}</a>.</>
+            : <>Отправьте сообщение в открывшемся окне — Оксана ответит, подтвердит состав, время и сумму. Если окно не открылось, позвоните: <a href={SITE.phoneHref}>{SITE.phone}</a>.</>}
         </motion.p>
         <motion.div className="row center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.15 }}>
           {count > 0 && !cleared && (

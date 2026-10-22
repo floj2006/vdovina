@@ -17,7 +17,7 @@ const phoneOk = (v: string) => v.replace(/\D/g, '').length >= 10;
 
 export default function Cart() {
   useSeo('Оформление заказа');
-  const { items, lines, total, hasFrom, set, count, form, setForm, toast } = useCart();
+  const { items, lines, total, hasFrom, set, count, form, setForm, toast, clear } = useCart();
   const nav = useNavigate();
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState(1);
@@ -28,6 +28,25 @@ export default function Cart() {
   const valid = !errs.name && !errs.phone && !errs.address;
   const text = orderText(items, form);
 
+  const [sending, setSending] = useState(false);
+  const [hp, setHp] = useState('');
+  const sendSite = async () => {
+    setSending(true);
+    try {
+      const r = await fetch('/api/order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, phone: form.phone, website: hp }),
+      });
+      if (!r.ok) throw new Error(String(r.status));
+      clear();
+      nav('/thanks', { state: { sent: true } });
+    } catch {
+      toast('Не удалось отправить с сайта — отправьте через WhatsApp или ВК');
+    } finally {
+      setSending(false);
+    }
+  };
   const sendWa = () => { window.open(`${SITE.wa}?text=${encodeURIComponent(text)}`, '_blank', 'noopener'); nav('/thanks'); };
   const sendVk = async () => {
     try { await navigator.clipboard.writeText(text); toast('Текст заказа скопирован — вставьте его в сообщение'); } catch { toast('Скопируйте текст заказа вручную'); }
@@ -158,6 +177,8 @@ export default function Cart() {
                   <p className="muted">Сообщение уже готово — выберите, куда отправить. Оксана ответит и подтвердит время и сумму.</p>
                   <motion.pre className="msg" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.15 } }}>{text}</motion.pre>
                   <div className="send">
+                    <input type="text" name="website" value={hp} onChange={(e) => setHp(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden style={{ position: 'absolute', left: '-9999px', opacity: 0 }} />
+                    <button className="btn btn-primary" onClick={sendSite} disabled={sending}>{sending ? 'Отправляю…' : 'Отправить заказ'}</button>
                     <button className="btn send-wa" onClick={sendWa}><IWa /> Отправить в WhatsApp</button>
                     <button className="btn send-vk" onClick={sendVk}><IVk /> Написать ВКонтакте</button>
                     <a className="btn btn-ghost" href={SITE.phoneHref}><IPhone /> Позвонить: {SITE.phone}</a>
