@@ -18,6 +18,8 @@ rsync -a --delay-updates dist/ "$SITE/"
 find "$SITE/assets" -type f -mtime +30 -delete
 
 docker compose -f deploy/compose.yaml up -d
+# Том с заказами docker создаёт от root, а API работает от пользователя node (uid 1000)
+docker run --rm -v oksana_orders:/data alpine chown 1000:1000 /data
 docker compose -f deploy/compose.yaml restart api
 sleep 2
 docker compose -f deploy/compose.yaml exec -T web wget -qO- http://oksana-api:3001/api/health >/dev/null
