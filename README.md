@@ -23,11 +23,12 @@ CI (`.github/workflows/ci.yml`) на каждый push и PR гоняет lint, 
 ## Деплой на VDS
 
 Сайт живёт на общем VDS (176.12.66.134, Ubuntu 24.04) рядом с сайтом ведущей (`/opt/olga`).
-Порты 80/443 держит Caddy того проекта — он выпускает HTTPS и по домену проксирует запросы
-в docker-проект `oksana` (`deploy/compose.yaml`): nginx со статикой + node API. Наружу ничего не открыто.
+Порты 80/443 держит общий прокси **edge** (`deploy/edge`, на сервере `/opt/edge`) — отдельный Caddy, который
+выпускает HTTPS и по домену направляет запросы в независимые docker-проекты `olga-zhukova` и `oksana`
+через docker-сеть `edge`. Передеплой одного сайта не трогает другой. Наружу открыт только edge.
 
 ```
-браузер → Caddy (olga-zhukova, :443) → oksana-web (nginx :8080) → /api/ → oksana-api (node :3001) → MAX
+браузер → edge Caddy (:443) → oksana-web (nginx :8080) → /api/ → oksana-api (node :3001) → MAX
 ```
 
 - Код: `/opt/oksana/repo` (git clone), настройки — `/opt/oksana/repo/.env` (права 600).
@@ -38,9 +39,25 @@ CI (`.github/workflows/ci.yml`) на каждый push и PR гоняет lint, 
 — pull, сборка, выкладка без простоя, перезапуск API, проверка `/api/health`.
 Изменения в самом `deploy.sh` применяются со следующего запуска (bash читает файл, который обновляет git pull).
 
-**Подключение к Caddy** (один раз): дописать `deploy/Caddyfile.snippet` в `/opt/olga/deployment/Caddyfile`
-и выполнить `docker exec olga-zhukova-caddy-1 caddy reload --config /etc/caddy/Caddyfile`.
-Если сайт ведущей будет передеплоен со своим Caddyfile, этот блок нужно вернуть.
+**Общий прокси edge.** Однократный перевод сервера: `bash /opt/edge/migrate.sh` (бэкап, проверка конфига,
+перенос сертификатов, переключение портов с автооткатом). Новый сайт — блок в `/opt/edge/Caddyfile`, затем
+`docker exec edge-caddy-1 caddy reload --config /etc/caddy/Caddyfile` (без простоя).
+
+**Важно для проекта Жуковой:** в её `compose.yaml` (и в исходниках, откуда она деплоится) нужно убрать сервис
+`caddy` и подключить `app` к сети `edge` с алиасом `olga-app`:
+
+```yaml
+  app:
+    networks:
+      default:
+      edge:
+        aliases: [olga-app]
+networks:
+  edge:
+    external: true
+```
+
+Иначе её следующий `docker compose up` снова запустит её Caddy, он упрётся в занятые порты 80/443.
 
 **Полезное:**
 - логи API: `cd /opt/oksana/repo && docker compose -f deploy/compose.yaml logs -f api`;

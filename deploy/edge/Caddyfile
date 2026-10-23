@@ -1,0 +1,31 @@
+# Каждый сайт — отдельный блок. Бэкенды — алиасы контейнеров в сети edge.
+
+# --- Ольга Жукова (/opt/olga) ---
+olga-zhukova-vologda.ru {
+    encode zstd gzip
+    request_body {
+        max_size 9MB
+    }
+    reverse_proxy olga-app:3000 {
+        header_up X-Real-IP {remote_host}
+    }
+}
+
+www.olga-zhukova-vologda.ru {
+    redir https://olga-zhukova-vologda.ru{uri} permanent
+}
+
+# --- Оксана Вдовина (/opt/oksana) --- раскомментировать, когда DNS домена укажет на 176.12.66.134
+# oksana-vdovina.ru {
+#     encode zstd gzip
+#     request_body {
+#         max_size 64KB
+#     }
+#     reverse_proxy oksana-web:8080 {
+#         header_up X-Real-IP {remote_host}
+#     }
+# }
+#
+# www.oksana-vdovina.ru {
+#     redir https://oksana-vdovina.ru{uri} permanent
+# }

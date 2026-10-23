@@ -1,0 +1,31 @@
+# Общий входной прокси VDS: единственный, кто держит порты 80/443. По домену направляет запросы
+# в независимые проекты (olga-zhukova, oksana) через docker-сеть edge — передеплой одного сайта не трогает другой.
+# На сервере: /opt/edge (копия этой папки).  Перечитать конфиг без простоя:
+#   docker exec edge-caddy-1 caddy reload --config /etc/caddy/Caddyfile
+name: edge
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+    networks: [edge]
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+volumes:
+  # Сертификаты. Резервная копия: docker run --rm -v edge_caddy_data:/d alpine tar cz -C /d . > caddy.tgz
+  caddy_data:
+  caddy_config:
+
+networks:
+  edge:
+    external: true

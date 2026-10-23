@@ -1,5 +1,5 @@
-# Сайт Оксаны на общем VDS. Порты 80/443 держит Caddy проекта olga-zhukova (/opt/olga):
-# он принимает HTTPS для oksana-vdovina.ru и проксирует сюда по общей docker-сети. Наружу ничего не открыто.
+# Сайт Оксаны на общем VDS. Порты 80/443 держит общий прокси edge (deploy/edge, на сервере /opt/edge):
+# он принимает HTTPS для oksana-vdovina.ru и проксирует сюда по docker-сети edge. Наружу ничего не открыто.
 #   запуск: docker compose -f deploy/compose.yaml up -d   (из /opt/oksana/repo)
 name: oksana
 
@@ -51,4 +51,4 @@ volumes:
 networks:
   shared:
     external: true
-    name: olga-zhukova_default
+    name: edge
