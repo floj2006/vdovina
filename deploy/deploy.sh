@@ -1,21 +1,24 @@
 #!/usr/bin/env bash
-# Обновление сайта на сервере: git pull → сборка → выкладка → перезапуск API.
-# Запуск из каталога репозитория под пользователем oksana: bash deploy/deploy.sh
+# Обновление сайта на VDS: git pull → сборка в контейнере → выкладка без простоя → перезапуск API.
+# Запуск под root: bash /opt/oksana/repo/deploy/deploy.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
-SITE=/var/www/oksana/site   # root в nginx.conf
+SITE=/opt/oksana/site
 
 git pull --ff-only
-npm ci
-set -a; . ./.env; set +a
-DEPLOY=1 npm run build   # собирается в dist/, nginx его не отдаёт — сайт не падает на время сборки
 
-# Выкладка без простоя: HTML заменяется атомарно (--delay-updates), старые /assets/ остаются,
-# чтобы у открытых вкладок догрузились чанки прошлой версии
+# Node на сервер не ставим: собираем в одноразовом контейнере (переменные VITE_* берутся из .env)
+docker run --rm -v "$PWD":/app -w /app --env-file .env -e DEPLOY=1 node:22-alpine \
+  sh -c "npm ci --no-audit --no-fund && npm run build"
+
+# HTML заменяется атомарно (--delay-updates), старые /assets/ остаются на 30 дней —
+# у открытых вкладок догрузятся чанки прошлой версии
 mkdir -p "$SITE"
 rsync -a --delay-updates dist/ "$SITE/"
 find "$SITE/assets" -type f -mtime +30 -delete
 
-sudo systemctl restart oksana-orders
-curl -fsS --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:3001/api/health >/dev/null
+docker compose -f deploy/compose.yaml up -d
+docker compose -f deploy/compose.yaml restart api
+sleep 2
+docker compose -f deploy/compose.yaml exec -T web wget -qO- http://oksana-api:3001/api/health >/dev/null
 echo "✓ сайт выложен, API отвечает"

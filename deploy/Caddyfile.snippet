@@ -1,0 +1,17 @@
+# Дописать в конец /opt/olga/deployment/Caddyfile, затем:
+#   docker exec olga-zhukova-caddy-1 caddy reload --config /etc/caddy/Caddyfile
+# Caddy сам выпустит HTTPS-сертификат, когда DNS домена укажет на сервер.
+
+oksana-vdovina.ru {
+    encode zstd gzip
+    request_body {
+        max_size 64KB
+    }
+    reverse_proxy oksana-web:8080 {
+        header_up X-Real-IP {remote_host}
+    }
+}
+
+www.oksana-vdovina.ru {
+    redir https://oksana-vdovina.ru{uri} permanent
+}
