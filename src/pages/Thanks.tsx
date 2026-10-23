@@ -47,7 +47,7 @@ export default function Thanks() {
             : <>Отправьте сообщение в открывшемся окне — Оксана ответит, подтвердит состав, время и сумму. Если окно не открылось, позвоните: <a href={SITE.phoneHref}>{SITE.phone}</a>.</>}
         </motion.p>
         {track && (
-          <motion.div className="track" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.1 }}>
+          <motion.div className="order-track" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.1 }}>
             <p>Хотите узнать, когда заказ подтвердят и он будет готов? Бот пришлёт статус в MAX.</p>
             <a className="btn btn-primary" href={track} target="_blank" rel="noopener">Следить за заказом в MAX</a>
             <small>Если бот уже открыт, отправьте ему код: <code>{new URL(track).searchParams.get('start')}</code></small>
