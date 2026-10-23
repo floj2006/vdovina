@@ -15,17 +15,18 @@ www.olga-zhukova-vologda.ru {
     redir https://olga-zhukova-vologda.ru{uri} permanent
 }
 
-# --- Оксана Вдовина (/opt/oksana) --- раскомментировать, когда DNS домена укажет на 176.12.66.134
-# oksana-vdovina.ru {
-#     encode zstd gzip
-#     request_body {
-#         max_size 64KB
-#     }
-#     reverse_proxy oksana-web:8080 {
-#         header_up X-Real-IP {remote_host}
-#     }
-# }
-#
+# --- Оксана Вдовина (/opt/oksana) ---
+oksana-vdovina.ru {
+    encode zstd gzip
+    request_body {
+        max_size 64KB
+    }
+    reverse_proxy oksana-web:8080 {
+        header_up X-Real-IP {remote_host}
+    }
+}
+
+# Раскомментировать, когда A-запись www укажет на 176.12.66.134
 # www.oksana-vdovina.ru {
 #     redir https://oksana-vdovina.ru{uri} permanent
 # }
