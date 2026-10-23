@@ -323,6 +323,11 @@ h3 { font-size: 24px; }
 .ub-label b { display: block; font: 700 17px/1.05 var(--serif); }
 .ub-label small { display: block; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-2); }
 .ub-label > :not(.mono) { min-width: 0; }
+/* Название и подпись — столбиком: в строку на узкой этикетке они наезжали друг на друга */
+.ub-name { display: grid; gap: 3px; }
+.ub-name b { overflow-wrap: anywhere; }
+/* На странице бокса подсказка уже есть под коробкой */
+.pd-unbox .ub-hint { display: none; }
 .ub-hint { position: absolute; left: 50%; bottom: -32px; transform: translateX(-50%); font-size: 13px; font-weight: 700; color: var(--ink-2); white-space: nowrap; }
 .unbox.big .ub-label b { font-size: 22px; }
 

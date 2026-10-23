@@ -48,8 +48,7 @@ export function Unbox({ img, name, autoDelay = 0.3, open: controlled, onToggle, 
         }}>
         <div className="ub-label">
           <span className="mono">ОВ</span>
-          <b>{label}</b>
-          <small>ручная работа</small>
+          <span className="ub-name"><b>{label}</b><small>ручная работа</small></span>
         </div>
         <motion.span className="rb v" variants={{ closed: { scaleY: 1 }, open: { scaleY: 0, transition: { duration: 0.35 } } }} />
         <motion.span className="rb h" variants={{ closed: { scaleX: 1 }, open: { scaleX: 0, transition: { duration: 0.35 } } }} />
