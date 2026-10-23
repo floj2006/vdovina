@@ -5,7 +5,15 @@ import { IClose, IMinus, IPlus, IRotate } from './Icons';
 import { lockScroll } from '../lib/lock';
 
 /* ---------- 3D-наклон с бликом ---------- */
-export function Tilt({ children, max = 10, className = '', glare = true }: { children: ReactNode; max?: number; className?: string; glare?: boolean }) {
+/** На тач-экранах наклона нет — и не нужно делать каждую карточку отдельным 3D-слоем с бликом */
+const canHover = typeof matchMedia !== 'undefined' && matchMedia('(hover: hover)').matches;
+
+export function Tilt(props: { children: ReactNode; max?: number; className?: string; glare?: boolean }) {
+  if (!canHover) return <div className={`tilt ${props.className ?? ''}`}>{props.children}</div>;
+  return <TiltInner {...props} />;
+}
+
+function TiltInner({ children, max = 10, className = '', glare = true }: { children: ReactNode; max?: number; className?: string; glare?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const px = useMotionValue(0.5);
   const py = useMotionValue(0.5);

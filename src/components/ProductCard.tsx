@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { CAT, HITS, NEW, shortName, type Product } from '../data/menu';
@@ -22,10 +22,14 @@ export function Price({ p }: { p: Product }) {
   return <span className="price">{p.from && <small>от </small>}{rub(p.price)}</span>;
 }
 
-export function ProductCard({ p, onQuick, i = 0 }: { p: Product; onQuick?: (p: Product) => void; i?: number }) {
+/**
+ * Без layout-анимации: на ~100 карточках она замеряла положение каждой при любом обновлении (например, «В заказ»).
+ * memo — карточка не перерисовывается, когда меняется корзина (её слушает только AddControl).
+ */
+export const ProductCard = memo(function ProductCard({ p, onQuick, i = 0 }: { p: Product; onQuick?: (p: Product) => void; i?: number }) {
   const imgRef = useRef<HTMLDivElement>(null);
   return (
-    <motion.article className="card" layout
+    <motion.article className="card"
       initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.5, delay: Math.min(i, 8) * 0.04, ease: [0.2, 0.8, 0.2, 1] }}>
       <Tilt max={6} className="card-tilt">
@@ -47,7 +51,7 @@ export function ProductCard({ p, onQuick, i = 0 }: { p: Product; onQuick?: (p: P
       </div>
     </motion.article>
   );
-}
+});
 
 /** Быстрый просмотр: фото «вырастает» из карточки в окно */
 export function QuickView({ p, onClose }: { p: Product | null; onClose: () => void }) {

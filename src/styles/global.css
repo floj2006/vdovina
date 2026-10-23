@@ -223,7 +223,7 @@ h3 { font-size: 24px; }
 .peek {
   position: absolute; left: 50%; bottom: 12px; transform: translate(-50%, 10px); opacity: 0;
   display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; font-size: 12.5px; font-weight: 800;
-  background: rgba(251, 247, 240, .92); backdrop-filter: blur(6px); transition: opacity .3s, transform .4s var(--ease); white-space: nowrap;
+  background: rgba(251, 247, 240, .95); transition: opacity .3s, transform .4s var(--ease); white-space: nowrap;
 }
 .peek svg { width: 15px; height: 15px; }
 .card:hover .peek, .card-img:focus-visible .peek { opacity: 1; transform: translate(-50%, 0); }
@@ -357,10 +357,11 @@ h3 { font-size: 24px; }
    ========================================================= */
 .hero { position: relative; min-height: 100svh; padding: calc(var(--hdr) + 40px) 0 80px; display: flex; align-items: center; overflow: hidden; }
 .hero > .wrap { display: grid; grid-template-columns: 1.05fr .95fr; gap: 48px; align-items: center; position: relative; z-index: 2; }
-.blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: .55; z-index: 0; }
-.blob.b1 { width: 520px; height: 520px; background: #EBC9B3; top: -120px; right: -80px; animation: drift 18s ease-in-out infinite; }
-.blob.b2 { width: 380px; height: 380px; background: #E9D7B0; bottom: -100px; left: -120px; animation: drift 22s ease-in-out infinite reverse; }
-.blob.b3 { width: 260px; height: 260px; background: #D7A3A8; top: 40%; left: 45%; opacity: .3; animation: drift 26s ease-in-out infinite; }
+/* Мягкое пятно — радиальный градиент, а не filter: blur(): размытие пересчитывалось бы на каждом кадре анимации */
+.blob { position: absolute; border-radius: 50%; opacity: .55; z-index: 0; will-change: transform; background: radial-gradient(closest-side, var(--c), transparent); }
+.blob.b1 { width: 680px; height: 680px; --c: #EBC9B3; top: -200px; right: -160px; animation: drift 18s ease-in-out infinite; }
+.blob.b2 { width: 540px; height: 540px; --c: #E9D7B0; bottom: -180px; left: -200px; animation: drift 22s ease-in-out infinite reverse; }
+.blob.b3 { width: 400px; height: 400px; --c: #D7A3A8; top: calc(40% - 70px); left: calc(45% - 70px); opacity: .3; animation: drift 26s ease-in-out infinite; }
 @keyframes drift { 50% { transform: translate(40px, -30px) scale(1.1); } }
 .eyebrow { display: inline-flex; align-items: center; gap: 10px; padding: 6px 16px 6px 6px; border-radius: 999px; background: var(--paper); box-shadow: var(--shadow-s); font-size: 13.5px; font-weight: 700; margin-bottom: 26px; }
 .eyebrow b { background: var(--berry); color: #fff; padding: 4px 10px; border-radius: 999px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
@@ -784,6 +785,11 @@ a.c-item:hover { transform: translateX(6px); box-shadow: var(--shadow-s); }
 }
 
 @media (max-width: 760px) {
+  /* На телефонах матовое стекло при прокрутке слишком дорогое — плотный фон без размытия */
+  .hdr.solid, .filters { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .hdr.solid { background: rgba(251, 247, 240, .97); }
+  .filters { background: rgba(246, 239, 228, .97); }
+  .blob { animation: none !important; }
   .mbar { display: flex; }
   body { padding-bottom: 80px; }
   .toast-wrap { bottom: 86px; }

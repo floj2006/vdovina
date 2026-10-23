@@ -93,7 +93,7 @@ export default function Menu() {
             <h2>{title}</h2>
             <span>{list.length} {plural(list.length, ['позиция', 'позиции', 'позиций'])}</span>
           </div>
-          <motion.div className="grid" layout>
+          <motion.div className="grid">
             <AnimatePresence>
               {list.map((p, i) => <ProductCard key={p.id} p={p} i={i} onQuick={setQv} />)}
             </AnimatePresence>
