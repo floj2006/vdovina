@@ -24,7 +24,7 @@ function LegalPage({ title, children }: { title: string; children: ReactNode }) 
 const Seller = () => (
   <>
     {legalLine() || LEGAL.owner}
-    {LEGAL.region && <>, {LEGAL.region}</>}{LEGAL.city && <>, г. {LEGAL.city}</>}. Телефон: <a href={SITE.phoneHref}>{SITE.phone}</a>
+    {LEGAL.region && <>, {LEGAL.region}</>}{LEGAL.city && <>, {LEGAL.city}</>}. Телефон: <a href={SITE.phoneHref}>{SITE.phone}</a>
     {LEGAL.email && <>, e-mail: <a href={`mailto:${LEGAL.email}`}>{LEGAL.email}</a></>}.
   </>
 );
