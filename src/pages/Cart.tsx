@@ -51,7 +51,7 @@ export default function Cart() {
   const valid = !Object.values(errs).some(Boolean);
   const text = orderText(items, form);
 
-  const done = (state?: { sent: boolean; id?: string }) => {
+  const done = (state?: { sent: boolean; id?: string; track?: string }) => {
     nav('/thanks', { state });
   };
   const sendSite = async () => {
@@ -63,11 +63,11 @@ export default function Cart() {
         body: JSON.stringify({ items, form, hp }),
       });
       if (!r.ok) throw new Error(String(r.status));
-      const { id } = (await r.json().catch(() => ({}))) as { id?: string };
+      const { id, track } = (await r.json().catch(() => ({}))) as { id?: string; track?: string };
       goal('order_sent', { total, items: count });
       clear();
       resetForm();
-      done({ sent: true, id });
+      done({ sent: true, id, track });
     } catch {
       goal('order_failed');
       toast('Не удалось отправить с сайта — отправьте через WhatsApp или ВК');

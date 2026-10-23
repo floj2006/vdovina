@@ -1,7 +1,8 @@
 # Оксана Вдовина — фуршеты и десерты
 
 Сайт-витрина с корзиной на React 18 + TypeScript + Vite, анимации — framer-motion, роутинг — react-router v6.
-Заказы принимает небольшой node-сервер (`server/`): проверяет, считает сумму по меню, сохраняет в файл и присылает Оксане в **MAX**.
+Заказы принимает небольшой node-сервер (`server/`): проверяет, считает сумму по меню, сохраняет в файл и присылает Оксане в **MAX**
+с кнопками статуса. Покупатель может подписаться на статус своего заказа в том же боте.
 Запасной канал — WhatsApp / ВКонтакте.
 
 ## Команды
@@ -30,6 +31,7 @@ CI (`.github/workflows/ci.yml`) на каждый push и PR гоняет lint, 
 3. В `repo`: `cp .env.example .env && chmod 600 .env` и заполнить (см. ниже).
 4. Бот MAX: создать на business.max.ru → «Чат-боты», токен — в `MAX_BOT_TOKEN`. Оксана пишет боту любое сообщение,
    затем `set -a; . ./.env; set +a; npm run max:chat-id` — полученный `MAX_CHAT_ID` вписать в `.env`.
+   Если API уже запущен, он сам забирает сообщения — chat_id ищите в журнале: `journalctl -u oksana-orders | grep "MAX message"`.
 5. `cp deploy/oksana-orders.service /etc/systemd/system/ && systemctl daemon-reload && systemctl enable oksana-orders`.
 6. `cp deploy/security-headers.conf /etc/nginx/snippets/oksana-security-headers.conf`,
    `cp deploy/nginx.conf /etc/nginx/sites-available/oksana`, заменить `example.ru`, включить сайт, `certbot --nginx`,
@@ -64,6 +66,11 @@ CI (`.github/workflows/ci.yml`) на каждый push и PR гоняет lint, 
   в приложении и `limit_req` в nginx, только JSON, поле-ловушка для ботов, лимит размера запроса.
   Каждый заказ дописывается в `/var/lib/oksana-orders/orders-ГГГГ-ММ.jsonl` (права 600) — он не потеряется, даже если MAX недоступен.
   Храните эти файлы не дольше года (так написано в политике).
+- **Статусы в MAX** (`server/bot.ts`, `server/store.ts`). Заказ приходит только в чат `MAX_CHAT_ID` с кнопками
+  «Принять / Отклонить», затем «Готов / Отменить». Покупатель на странице «Спасибо» жмёт «Следить за заказом в MAX»
+  (ссылка `max.ru/<бот>?start=<код>`) или отправляет боту код — если диалог с ботом уже был, ссылка код не передаёт.
+  После этого бот пишет ему при каждой смене статуса. Код — 16 случайных символов, по номеру заказа чужой не подключить.
+  Состояние — `bot-state.json` рядом с заказами, хранится 30 дней. События бот забирает long polling'ом, вебхук не нужен.
 - **Предрендер** (`src/entry-server.tsx`, `scripts/prerender.mjs`): каждая страница, категория и блюдо — готовый HTML
   со своими title, description, canonical и JSON-LD. `/cart` и `/thanks` отдаются из `spa.html` (noindex),
   несуществующие адреса — настоящий 404.

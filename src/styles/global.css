@@ -853,6 +853,11 @@ a.c-item:hover { transform: translateX(6px); box-shadow: var(--shadow-s); }
   .co-list .th { width: 48px; height: 48px; }
 }
 
+.track { max-width: 520px; margin: 0 auto 26px; padding: 20px 22px; border-radius: var(--r); background: var(--paper); border: 1px solid var(--line); text-align: center; }
+.track p { margin: 0 0 14px; color: var(--ink-2); }
+.track small { display: block; margin-top: 12px; font-size: 13px; color: var(--ink-2); }
+.track code { padding: 2px 6px; border-radius: 6px; background: var(--cream); font-size: 13px; user-select: all; }
+
 /* ---------- Документы, cookie, согласие ---------- */
 .legal { max-width: 760px; font-size: 16px; line-height: 1.65; }
 .legal h2 { font-size: clamp(24px, 2.4vw, 30px); margin: 36px 0 12px; }

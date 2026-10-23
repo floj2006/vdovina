@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
-    "build:server": "vite build --ssr server/index.ts --outDir dist-server",
+    "build:server": "vite build --ssr server/index.ts --outDir dist-server --target node20",
     "start": "node dist-server/index.js",
     "max:chat-id": "node scripts/max-chat-id.mjs"
   },

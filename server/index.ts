@@ -7,17 +7,18 @@ import { randomUUID } from 'node:crypto';
 import { appendFile, mkdir } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { join } from 'node:path';
+import { announceOrder, botReady, startBot } from './bot';
+import { maxConfigured } from './max';
 import { parseOrder, type Order } from './order';
+import { loadStore } from './store';
 
 const env = process.env;
 const PORT = Number(env.PORT) || 3001;
 const HOST = env.HOST || '127.0.0.1';
 const SITE_URL = (env.SITE_URL || '').replace(/\/+$/, '');
 const ORDERS_DIR = env.ORDERS_DIR || join(process.cwd(), 'orders');
-const MAX_API = (env.MAX_API_URL || 'https://platform-api.max.ru').replace(/\/+$/, '');
-const MAX_TOKEN = env.MAX_BOT_TOKEN || '';
-// Куда слать: личный диалог с ботом (MAX_CHAT_ID) или конкретному пользователю (MAX_USER_ID)
-const MAX_TARGET = env.MAX_CHAT_ID ? `chat_id=${env.MAX_CHAT_ID}` : env.MAX_USER_ID ? `user_id=${env.MAX_USER_ID}` : '';
+// Заказы уходят только в чат Оксаны (MAX_CHAT_ID); без токена, чата или домена API отвечает 503
+const READY = maxConfigured() && botReady() && Boolean(SITE_URL);
 
 const MAX_BODY = 16 * 1024;
 const WINDOW_MS = 10 * 60_000;
@@ -74,18 +75,8 @@ async function save(id: string, order: Order) {
   await appendFile(join(ORDERS_DIR, `orders-${month}.jsonl`), line, { mode: 0o600 });
 }
 
-async function notifyMax(text: string) {
-  const r = await fetch(`${MAX_API}/messages?${MAX_TARGET}`, {
-    method: 'POST',
-    headers: { Authorization: MAX_TOKEN, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: text.slice(0, 4000) }),
-    signal: AbortSignal.timeout(8000),
-  });
-  if (!r.ok) throw new Error(`MAX ${r.status}: ${(await r.text().catch(() => '')).slice(0, 300)}`);
-}
-
 async function handleOrder(req: IncomingMessage, res: ServerResponse) {
-  if (!MAX_TOKEN || !MAX_TARGET || !SITE_URL) return send(res, 503, { error: 'not_configured' });
+  if (!READY) return send(res, 503, { error: 'not_configured' });
 
   // Только со своего сайта и только JSON (у JSON-запроса с чужого сайта браузер спросит разрешение, CORS его не даст).
   // От curl не спасает — для этого лимиты ниже и в nginx
@@ -111,16 +102,21 @@ async function handleOrder(req: IncomingMessage, res: ServerResponse) {
   } catch (e) {
     console.error('save failed', e);
   }
+  let track: string | undefined;
   try {
-    await notifyMax(`🛒 Заказ ${id} с сайта\n\n${order.text}`);
+    track = await announceOrder(id, order.text, order.form.method === 'pickup');
   } catch (e) {
     console.error('max failed', id, e);
     // Заказ сохранён, но Оксана его не увидела — клиенту предлагаем WhatsApp / ВК
     return send(res, 502, { error: 'notify_failed' });
   }
   console.log('order', id, order.total);
-  send(res, 200, { ok: true, id });
+  // track — ссылка на бота: покупатель сам подключает уведомления о статусе
+  send(res, 200, { ok: true, id, track });
 }
+
+await loadStore(ORDERS_DIR);
+if (READY) void startBot();
 
 createServer(async (req, res) => {
   try {
@@ -136,5 +132,5 @@ createServer(async (req, res) => {
     if (!res.headersSent) send(res, 500, { error: 'internal' });
   }
 }).listen(PORT, HOST, () => {
-  console.log(`orders api on http://${HOST}:${PORT}${MAX_TOKEN && MAX_TARGET ? '' : ' (MAX не настроен — заказы получат 503)'}`);
+  console.log(`orders api on http://${HOST}:${PORT}${READY ? '' : ' (не заданы MAX_BOT_TOKEN, MAX_CHAT_ID или SITE_URL — заказы получат 503)'}`);
 });

@@ -18,11 +18,11 @@ async function fillDetails(page: Page) {
   await expect(page.getByLabel('Телефон *')).toHaveValue('+7 (900) 123-45-67');
 }
 
-test('заказ уходит с сайта и показывает номер', async ({ page }) => {
+test('заказ уходит с сайта, показывает номер и ссылку на статус в MAX', async ({ page }) => {
   let body: { items?: Record<string, number>; form?: { name?: string; phone?: string } } = {};
   await page.route('/api/order', async (route) => {
     body = route.request().postDataJSON();
-    await route.fulfill({ json: { ok: true, id: '2310-TEST' } });
+    await route.fulfill({ json: { ok: true, id: '2310-TEST', track: 'https://max.ru/test_bot?start=abc' } });
   });
   await fillCart(page);
   await fillDetails(page);
@@ -30,8 +30,9 @@ test('заказ уходит с сайта и показывает номер',
   await page.getByRole('button', { name: /Проверить заказ/ }).click();
   await page.getByRole('button', { name: 'Отправить заказ' }).click();
 
-  await expect(page.getByText('Заказ принят')).toBeVisible();
+  await expect(page.getByText('Заявка отправлена')).toBeVisible();
   await expect(page.getByText('2310-TEST')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Следить за заказом в MAX' })).toHaveAttribute('href', 'https://max.ru/test_bot?start=abc');
   // Клиент шлёт состав и форму, текст и цены собирает сервер
   expect(body.form?.phone).toBe('+7 (900) 123-45-67');
   expect(body.form?.name).toBe('Тест');
