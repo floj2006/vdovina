@@ -20,29 +20,32 @@ npm run max:chat-id  # узнать MAX_CHAT_ID (нужен MAX_BOT_TOKEN в о�
 
 CI (`.github/workflows/ci.yml`) на каждый push и PR гоняет lint, сборку и e2e.
 
-## Деплой на VDS (Ubuntu/Debian, nginx, Node 20+)
+## Деплой на VDS
 
-Один раз:
+Сайт живёт на общем VDS (176.12.66.134, Ubuntu 24.04) рядом с сайтом ведущей (`/opt/olga`).
+Порты 80/443 держит Caddy того проекта — он выпускает HTTPS и по домену проксирует запросы
+в docker-проект `oksana` (`deploy/compose.yaml`): nginx со статикой + node API. Наружу ничего не открыто.
 
-0. Node 20+ в `/usr/bin` — из NodeSource или официального пакета (в apt Ubuntu слишком старый, nvm не подойдёт), плюс `nginx rsync git`.
-1. Пользователь и каталог: `adduser --disabled-password oksana`, `mkdir -p /var/www/oksana && chown oksana /var/www/oksana`.
-2. Под `oksana`: `git clone https://github.com/floj2006/vdovina.git /var/www/oksana/repo`.
-   Рабочая сборка лежит в `repo/dist`, nginx отдаёт выложенную копию `/var/www/oksana/site`.
-3. В `repo`: `cp .env.example .env && chmod 600 .env` и заполнить (см. ниже).
-4. Бот MAX: создать на business.max.ru → «Чат-боты», токен — в `MAX_BOT_TOKEN`. Оксана пишет боту любое сообщение,
-   затем `set -a; . ./.env; set +a; npm run max:chat-id` — полученный `MAX_CHAT_ID` вписать в `.env`.
-   Если API уже запущен, он сам забирает сообщения — chat_id ищите в журнале: `journalctl -u oksana-orders | grep "MAX message"`.
-5. `cp deploy/oksana-orders.service /etc/systemd/system/ && systemctl daemon-reload && systemctl enable oksana-orders`.
-6. `cp deploy/security-headers.conf /etc/nginx/snippets/oksana-security-headers.conf`,
-   `cp deploy/nginx.conf /etc/nginx/sites-available/oksana`, заменить `example.ru`, включить сайт, `certbot --nginx`,
-   затем раскомментировать HSTS в snippet.
-7. Разрешить пользователю перезапуск сервиса: в `visudo` строка
-   `oksana ALL=NOPASSWD: /usr/bin/systemctl restart oksana-orders`.
-8. `bash deploy/deploy.sh`.
+```
+браузер → Caddy (olga-zhukova, :443) → oksana-web (nginx :8080) → /api/ → oksana-api (node :3001) → MAX
+```
 
-Обновление: `bash deploy/deploy.sh` — git pull, сборка в `dist/`, выкладка в `site/` без простоя
-(старые ассеты живут ещё 30 дней), перезапуск API, проверка `/api/health`.
-Без `VITE_SITE_URL` деплой-сборка остановится с ошибкой.
+- Код: `/opt/oksana/repo` (git clone), настройки — `/opt/oksana/repo/.env` (права 600).
+- Выложенный сайт: `/opt/oksana/site`; заказы и состояние бота — docker-том `oksana_orders`.
+- Node на сервере не нужен: сборка идёт в одноразовом контейнере `node:22-alpine`.
+
+**Обновить сайт** (после `git push`): `ssh root@176.12.66.134 bash /opt/oksana/repo/deploy/deploy.sh`
+— pull, сборка, выкладка без простоя, перезапуск API, проверка `/api/health`.
+Изменения в самом `deploy.sh` применяются со следующего запуска (bash читает файл, который обновляет git pull).
+
+**Подключение к Caddy** (один раз): дописать `deploy/Caddyfile.snippet` в `/opt/olga/deployment/Caddyfile`
+и выполнить `docker exec olga-zhukova-caddy-1 caddy reload --config /etc/caddy/Caddyfile`.
+Если сайт ведущей будет передеплоен со своим Caddyfile, этот блок нужно вернуть.
+
+**Полезное:**
+- логи API: `cd /opt/oksana/repo && docker compose -f deploy/compose.yaml logs -f api`;
+- chat_id Оксаны: в тех же логах строка `MAX message from … chat_id=…`;
+- резервная копия заказов: `docker run --rm -v oksana_orders:/d alpine tar cz -C /d . > orders.tgz`.
 
 ## Переменные `.env`
 
@@ -51,8 +54,7 @@ CI (`.github/workflows/ci.yml`) на каждый push и PR гоняет lint, 
 | `VITE_SITE_URL` | домен без слэша: canonical, og:url, sitemap.xml |
 | `VITE_YM_ID` | номер счётчика Яндекс Метрики |
 | `SITE_URL` | тот же домен — API принимает заказы только с него; без него API отвечает 503 |
-| `PORT` | порт API (nginx проксирует на 3001) |
-| `ORDERS_DIR` | каталог копий заказов для локального запуска; на сервере — `/var/lib/oksana-orders` из юнита |
+| `PORT`, `ORDERS_DIR` | для локального запуска; в docker их задаёт `deploy/compose.yaml` |
 | `MAX_BOT_TOKEN`, `MAX_CHAT_ID` | бот MAX и диалог, куда приходят заказы |
 | `MAX_API_URL` | адрес Bot API. `platform-api2.max.ru` требует сертификат Минцифры (`NODE_EXTRA_CA_CERTS`), поэтому по умолчанию `platform-api.max.ru` |
 
@@ -64,7 +66,7 @@ CI (`.github/workflows/ci.yml`) на каждый push и PR гоняет lint, 
 - **Заказ.** Клиент отправляет только состав `{id: количество}` и форму. Сервер (`server/order.ts`) проверяет поля,
   берёт цены из `src/data/menu.ts` и сам собирает текст. Защита: проверка `Origin`, лимит 5 заказов / 10 мин с IP
   в приложении и `limit_req` в nginx, только JSON, поле-ловушка для ботов, лимит размера запроса.
-  Каждый заказ дописывается в `/var/lib/oksana-orders/orders-ГГГГ-ММ.jsonl` (права 600) — он не потеряется, даже если MAX недоступен.
+  Каждый заказ дописывается в `orders-ГГГГ-ММ.jsonl` в томе `oksana_orders` (права 600) — он не потеряется, даже если MAX недоступен.
   Храните эти файлы не дольше года (так написано в политике).
 - **Статусы в MAX** (`server/bot.ts`, `server/store.ts`). Заказ приходит только в чат `MAX_CHAT_ID` с кнопками
   «Принять / Отклонить», затем «Готов / Отменить». Покупатель на странице «Спасибо» жмёт «Следить за заказом в MAX»
