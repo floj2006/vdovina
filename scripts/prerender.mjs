@@ -42,8 +42,8 @@ function page(url, { html, head }, { noindex = false } = {}) {
   return out.replace('</head>', () => `${noindex ? NOINDEX : ''}</head>`);
 }
 
-if (!siteUrl && process.env.VERCEL_ENV === 'production') {
-  console.error('\n✖ VITE_SITE_URL не задан для продакшен-сборки (Vercel → Environment Variables).\n');
+if (!siteUrl && process.env.DEPLOY === '1') {
+  console.error('\n✖ VITE_SITE_URL не задан для продакшен-сборки (файл .env на сервере).\n');
   process.exit(1);
 }
 

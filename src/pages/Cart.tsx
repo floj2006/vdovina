@@ -60,7 +60,7 @@ export default function Cart() {
       const r = await fetch('/api/order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, phone: form.phone, hp }),
+        body: JSON.stringify({ items, form, hp }),
       });
       if (!r.ok) throw new Error(String(r.status));
       const { id } = (await r.json().catch(() => ({}))) as { id?: string };

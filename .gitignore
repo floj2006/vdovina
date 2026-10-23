@@ -9,3 +9,5 @@ dist-ssr
 test-results
 playwright-report
 .claude/
+dist-server
+orders

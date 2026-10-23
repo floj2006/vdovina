@@ -58,7 +58,7 @@ const CartCtx = createContext<Ctx | null>(null);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, dispatch] = useReducer(reducer, undefined, () => {
     const raw = load<Items>('ov_cart', {});
-    return Object.fromEntries(Object.entries(raw).filter(([id, q]) => BY_ID[id] && q > 0));
+    return Object.fromEntries(Object.entries(raw).filter(([id, q]) => Object.prototype.hasOwnProperty.call(BY_ID, id) && q > 0));
   });
   const [form, setFormState] = useState<OrderForm>(() => load('ov_form', emptyForm));
   const [drawer, setDrawer] = useState(false);

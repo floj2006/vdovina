@@ -16,17 +16,19 @@ export const SITE = {
 };
 
 /**
- * Данные продавца для футера, политики и условий заказа.
- * ЗАПОЛНИТЬ перед запуском: пустые поля на сайте не выводятся.
+ * Данные продавца для футера, политики и условий заказа (из «Моего налога»).
+ * Пустые поля на сайте не выводятся.
  */
 export const LEGAL = {
   /** ФИО полностью, как в документах */
   owner: 'Вдовина Оксана',
   /** «Самозанятая» или «ИП» */
-  status: '',
-  inn: '',
+  status: 'Самозанятая',
+  inn: '742903672185',
   /** ОГРНИП — только для ИП */
   ogrnip: '',
+  region: 'Челябинская область',
+  /** Город — дополнить, если нужен в документах */
   city: '',
   email: '',
   /** Дата публикации политики и условий */
@@ -34,7 +36,7 @@ export const LEGAL = {
 };
 
 export const legalLine = () =>
-  [LEGAL.status && `${LEGAL.status} ${LEGAL.owner}`, LEGAL.inn && `ИНН ${LEGAL.inn}`, LEGAL.ogrnip && `ОГРНИП ${LEGAL.ogrnip}`]
+  [LEGAL.status && `${LEGAL.status} ${LEGAL.owner}${LEGAL.status === 'Самозанятая' ? ' (плательщик НПД)' : ''}`, LEGAL.inn && `ИНН ${LEGAL.inn}`, LEGAL.ogrnip && `ОГРНИП ${LEGAL.ogrnip}`]
     .filter(Boolean).join(' · ');
 
 export type PlanKey = 'light' | 'buffet' | 'rich';

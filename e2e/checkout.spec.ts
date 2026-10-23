@@ -19,7 +19,7 @@ async function fillDetails(page: Page) {
 }
 
 test('заказ уходит с сайта и показывает номер', async ({ page }) => {
-  let body: { text?: string; phone?: string } = {};
+  let body: { items?: Record<string, number>; form?: { name?: string; phone?: string } } = {};
   await page.route('/api/order', async (route) => {
     body = route.request().postDataJSON();
     await route.fulfill({ json: { ok: true, id: '2310-TEST' } });
@@ -32,8 +32,10 @@ test('заказ уходит с сайта и показывает номер',
 
   await expect(page.getByText('Заказ принят')).toBeVisible();
   await expect(page.getByText('2310-TEST')).toBeVisible();
-  expect(body.phone).toBe('+7 (900) 123-45-67');
-  expect(body.text).toContain('Имя: Тест');
+  // Клиент шлёт состав и форму, текст и цены собирает сервер
+  expect(body.form?.phone).toBe('+7 (900) 123-45-67');
+  expect(body.form?.name).toBe('Тест');
+  expect(Object.values(body.items ?? {})).toEqual([1]);
   // Корзина и личные данные стёрты
   expect(await page.evaluate(() => localStorage.getItem('ov_cart'))).toBe('{}');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('ov_form') || '{}').phone)).toBe('');

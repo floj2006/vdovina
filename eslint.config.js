@@ -4,7 +4,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist', 'dist-ssr', 'test-results', 'playwright-report'] },
+  { ignores: ['dist', 'dist-ssr', 'dist-server', 'orders', 'test-results', 'playwright-report'] },
   {
     files: ['**/*.{ts,tsx}'],
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
@@ -16,7 +16,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['api/**/*.js', 'scripts/**/*.mjs', '*.config.{js,ts}'],
+    files: ['server/**/*.ts', 'scripts/**/*.mjs', '*.config.{js,ts}'],
     extends: [js.configs.recommended],
     languageOptions: { globals: globals.node },
   },

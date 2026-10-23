@@ -13,6 +13,17 @@ const spot = (i: number, n: number, R: number) => {
 };
 
 /**
+ * Позиция и размер в процентах анимируются напрямую, а не через layout:
+ * layout-анимация масштабирует блок трансформом, и фото внутри сплющиваются и мигают,
+ * когда при каждом новом блюде перестраивается вся раскладка.
+ */
+const place = (s: { x: number; y: number }, size: number) => ({
+  left: `${s.x}%`, top: `${s.y}%`, width: `${size}%`, marginLeft: `${-size / 2}%`, marginTop: `${-size / 2}%`,
+});
+const glide = { duration: 0.5, ease: [0.2, 0.8, 0.2, 1] as const };
+const MOVE = { left: glide, top: glide, width: glide, marginLeft: glide, marginTop: glide };
+
+/**
  * «Ваш стол»: живая доска-поднос. Каждый вид закуски — горка из фото,
  * чем больше штук, тем выше горка; бейдж показывает количество.
  */
@@ -33,14 +44,13 @@ export function Platter({ lines, caption, compact }: { lines: { p: Product; q: n
         </AnimatePresence>
         <AnimatePresence>
           {lines.map(({ p, q }, i) => {
-            const s = spot(i, n, R);
+            const box = place(spot(i, n, R), size);
             const stack = Math.min(4, Math.max(1, Math.ceil(Math.log2(q + 1))));
             return (
-              <motion.div key={p.id} className="pile" layout
-                style={{ width: `${size}%`, left: `${s.x}%`, top: `${s.y}%`, marginLeft: `${-size / 2}%`, marginTop: `${-size / 2}%` }}
-                initial={{ scale: 0, opacity: 0, y: -60 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+              <motion.div key={p.id} className="pile"
+                initial={{ scale: 0, opacity: 0, y: -60, ...box }} animate={{ scale: 1, opacity: 1, y: 0, ...box }}
                 exit={{ scale: 0, opacity: 0, transition: { duration: 0.25 } }}
-                transition={{ type: 'spring', stiffness: 320, damping: 20, mass: 0.8 }}
+                transition={{ type: 'spring', stiffness: 320, damping: 20, mass: 0.8, ...MOVE }}
                 title={`${shortName(p.name)} — ${q} шт`}>
                 {[...Array(stack)].map((_, k) => (
                   <motion.span key={k} className="pc" initial={{ scale: 0 }} animate={{ scale: 1 }}
@@ -72,12 +82,11 @@ export function PortionPlate({ img, count, name }: { img: string | null; count: 
       <div className="plate-ui" aria-label={`${count} шт — ${name}`}>
         <AnimatePresence initial={false}>
           {[...Array(shown)].map((_, i) => {
-            const s = spot(i, shown, R);
+            const box = place(spot(i, shown, R), size);
             return (
-              <motion.span key={i} className="pc" layout
-                style={{ width: `${size}%`, left: `${s.x}%`, top: `${s.y}%`, marginLeft: `${-size / 2}%`, marginTop: `${-size / 2}%`, backgroundImage: img ? `url(${img})` : undefined }}
-                initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }}
-                transition={{ type: 'spring', stiffness: 360, damping: 22, delay: Math.min(i, 20) * 0.012 }} />
+              <motion.span key={i} className="pc" style={{ backgroundImage: img ? `url(${img})` : undefined }}
+                initial={{ scale: 0, opacity: 0, ...box }} animate={{ scale: 1, opacity: 1, ...box }} exit={{ scale: 0, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 360, damping: 22, delay: Math.min(i, 20) * 0.012, ...MOVE }} />
             );
           })}
         </AnimatePresence>

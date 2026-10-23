@@ -61,7 +61,7 @@ export function dateStatus(v: string): 'empty' | 'past' | 'soon' | 'ok' {
 export const emptyForm: OrderForm = { name: '', phone: '', date: '', guests: '', method: 'pickup', address: '', note: '' };
 
 export const cartLines = (items: Record<string, number>) =>
-  Object.entries(items).filter(([id, q]) => BY_ID[id] && q > 0).map(([id, q]) => ({ p: BY_ID[id], q }));
+  Object.entries(items).filter(([id, q]) => Object.prototype.hasOwnProperty.call(BY_ID, id) && q > 0).map(([id, q]) => ({ p: BY_ID[id], q }));
 
 export const cartTotal = (items: Record<string, number>) =>
   cartLines(items).reduce((s, { p, q }) => s + p.price * q, 0);
