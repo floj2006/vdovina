@@ -197,6 +197,9 @@ const RAW: RawCat[] = [
       ['Бокс «Гости на пороге»', 2700, 0, '1 бокс', '019c681b8cba72af9a81bfc8fa80f66c'],
       ['Бокс «Под беленькую»', 2400, 0, '1 бокс', '019c1ae2287b76da92c942dc838352a7'],
       ['Бокс к Масленице', 2200, 0, '1 бокс', '019c678a108273408a1834ace0fd0119'],
+      ['Набор ко Дню матери «Бокал + шампанское»', 1000, 0, '1 набор', '/img/mama-bokal.webp'],
+      ['Набор ко Дню матери «Бенто-торт + 5 трайфлов»', 2500, 0, '1 набор', '/img/mama-bento-5.webp'],
+      ['Набор ко Дню матери «Бенто с цветком»', 1500, 0, '1 набор', '/img/mama-cvetok.webp'],
     ] },
 ];
 
@@ -209,8 +212,9 @@ export const translit = (s: string) =>
   s.toLowerCase().replace(/\(.*?\)/g, '').split('').map((c) => TR[c] ?? c).join('')
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64).replace(/-+$/, '');
 
+/** id — хэш фото на dodostatic или локальный путь из public/ (начинается с «/») */
 export const imgUrl = (id: string | null, size = 520) =>
-  id ? `https://media.dodostatic.com/image/r:${size}x${size}/${id}.jpg` : null;
+  !id ? null : id.startsWith('/') ? id : `https://media.dodostatic.com/image/r:${size}x${size}/${id}.jpg`;
 
 export const COVER = 'https://media.dodostatic.com/image/r:840x630/019bc5357ad07260af84d0acbe8d88db.jpg';
 

@@ -28,7 +28,7 @@ const productLd = (p: Product) => {
       name: p.name,
       description: cat.about,
       category: cat.title,
-      ...(p.img && { image: p.img }),
+      ...(p.img && { image: p.img.startsWith('/') ? abs(p.img) : p.img }),
       offers: {
         '@type': 'Offer',
         price: p.price,
